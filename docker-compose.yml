@@ -1,0 +1,133 @@
+version: "3"
+
+networks:
+  message-q:
+    external: true
+    driver: bridge
+
+services:
+  zoo1:
+    image: zookeeper:3.5.8
+    restart: always
+    hostname: zoo1
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_INIT_LIMIT: 10
+      ZOO_SYNC_LIMIT: 5
+      ZOO_MAX_CLIENT_CNXNS: 1000
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    volumes:
+      - ./zk-kafka/zoo1/data:/data
+      - ./zk-kafka/zoo1/datalog:/datalog
+    networks:
+      - message-q
+
+  zoo2:
+    image: zookeeper:3.5.8
+    restart: always
+    hostname: zoo2
+    ports:
+      - "2182:2181"
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_INIT_LIMIT: 10
+      ZOO_SYNC_LIMIT: 5
+      ZOO_MAX_CLIENT_CNXNS: 1000
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    volumes:
+      - ./zk-kafka/zoo2/data:/data
+      - ./zk-kafka/zoo2/datalog:/datalog
+    networks:
+      - message-q
+
+  zoo3:
+    image: zookeeper:3.5.8
+    restart: always
+    hostname: zoo3
+    ports:
+      - "2183:2181"
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_INIT_LIMIT: 10
+      ZOO_SYNC_LIMIT: 5
+      ZOO_MAX_CLIENT_CNXNS: 1000
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
+    volumes:
+      - ./zk-kafka/zoo3/data:/data
+      - ./zk-kafka/zoo3/datalog:/datalog
+    networks:
+      - message-q
+
+  kafka1:
+    hostname: kafka1
+    image: wurstmeister/kafka:2.13-2.6.0
+    restart: on-failure
+    ports:
+      - "9095:9092"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./zk-kafka/kafka3/data:/var/lib/kafka/data
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181,zoo2:2181,zoo3:2181"
+      KAFKA_CREATE_TOPICS: "userMemberCreate:3:3,memberUserCreate:3:3,userMemberDelete:3:3,memberUserDelete:3:3"
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://:9095
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9095
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    networks:
+      - message-q
+
+  kafka2:
+    hostname: kafka2
+    image: wurstmeister/kafka:2.13-2.6.0
+    restart: on-failure
+    ports:
+      - "9096:9092"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./zk-kafka/kafka3/data:/var/lib/kafka/data
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181,zoo2:2181,zoo3:2181"
+      KAFKA_CREATE_TOPICS: "userMemberCreate:3:3,memberUserCreate:3:3,userMemberDelete:3:3,memberUserDelete:3:3"
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://:9096
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9096
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    networks:
+      - message-q
+
+  kafka3:
+    hostname: kafka3
+    image: wurstmeister/kafka:2.13-2.6.0
+    restart: on-failure
+    ports:
+      - "9097:9092"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./zk-kafka/kafka3/data:/var/lib/kafka/data
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181,zoo2:2181,zoo3:2181"
+      KAFKA_CREATE_TOPICS: "userMemberCreate:3:3,memberUserCreate:3:3,userMemberDelete:3:3,memberUserDelete:3:3"
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://:9097
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9097
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    networks:
+      - message-q

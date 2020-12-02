@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway
+  # annotations:
+  #   nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  # defaultBackend:
+  #   resource:
+  #     apiGroup: k8s.example.com
+  #     kind: StorageBucket
+  #     name: static-assets
+  rules:
+  - host: localhost
+  - http:
+      paths:
+        - path: /api/auth
+          pathType: Prefix
+          backend:
+            service:
+              name: auth-server
+              port:
+                number: 8081
+        - path: /api/group
+          pathType: Prefix
+          backend:
+            service:
+              name: group-server
+              port:
+                number: 8082
+
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.41.2/deploy/static/provider/cloud/deploy.yaml
